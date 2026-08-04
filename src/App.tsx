@@ -6,6 +6,8 @@ import MailIcon from '@mui/icons-material/Mail'
 import GroupIcon from '@mui/icons-material/Group'
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
 import SettingsIcon from '@mui/icons-material/Settings'
+import HistoryIcon from '@mui/icons-material/History'
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import TaskAltIcon from '@mui/icons-material/TaskAlt'
 import SendIcon from '@mui/icons-material/Send'
@@ -21,9 +23,13 @@ import Messages from './pages/admin/Messages'
 import Users from './pages/admin/Users'
 import Games from './pages/admin/Games'
 import Settings from './pages/admin/Settings'
+import AuditLogs from './pages/admin/AuditLogs'
+import Reminders from './pages/admin/Reminders'
 import MyCommissions from './pages/user/MyCommissions'
 import MyProgress from './pages/user/MyProgress'
 import SendMessage from './pages/user/SendMessage'
+import Profile from './pages/Profile'
+import OidcCallback from './pages/OidcCallback'
 
 const adminNav: NavItem[] = [
   { path: '/admin/commissions', icon: <TableChartIcon />, label: '代肝数据' },
@@ -31,6 +37,8 @@ const adminNav: NavItem[] = [
   { path: '/admin/messages', icon: <MailIcon />, label: '留言管理' },
   { path: '/admin/users', icon: <GroupIcon />, label: '用户管理' },
   { path: '/admin/games', icon: <SportsEsportsIcon />, label: '游戏管理' },
+  { path: '/admin/reminders', icon: <NotificationsActiveIcon />, label: '提醒管理' },
+  { path: '/admin/audit', icon: <HistoryIcon />, label: '审计日志' },
   { path: '/admin/settings', icon: <SettingsIcon />, label: '系统设置' },
 ]
 
@@ -40,9 +48,9 @@ const userNav: NavItem[] = [
   { path: '/user/messages', icon: <SendIcon />, label: '发送留言' },
 ]
 
-function RequireAuth({ role, children }: { role: 'admin' | 'user'; children: ReactNode }) {
+function RequireAuth({ roles, children }: { roles: Array<'admin' | 'user'>; children: ReactNode }) {
   const auth = useAuth()
-  if (auth.role !== role) return <Navigate to="/" replace />
+  if (!auth.role || !roles.includes(auth.role)) return <Navigate to="/" replace />
   return <>{children}</>
 }
 
@@ -65,10 +73,11 @@ export default function App() {
           <UnauthorizedBootstrap />
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/oidc/callback" element={<OidcCallback />} />
             <Route
               path="/admin"
               element={
-                <RequireAuth role="admin">
+                <RequireAuth roles={['admin']}>
                   <AppLayout nav={adminNav} />
                 </RequireAuth>
               }
@@ -79,12 +88,15 @@ export default function App() {
               <Route path="messages" element={<Messages />} />
               <Route path="users" element={<Users />} />
               <Route path="games" element={<Games />} />
+              <Route path="reminders" element={<Reminders />} />
+              <Route path="audit" element={<AuditLogs />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="profile" element={<Profile />} />
             </Route>
             <Route
               path="/user"
               element={
-                <RequireAuth role="user">
+                <RequireAuth roles={['user', 'admin']}>
                   <AppLayout nav={userNav} />
                 </RequireAuth>
               }
@@ -93,6 +105,7 @@ export default function App() {
               <Route path="commissions" element={<MyCommissions />} />
               <Route path="progress" element={<MyProgress />} />
               <Route path="messages" element={<SendMessage />} />
+              <Route path="profile" element={<Profile />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

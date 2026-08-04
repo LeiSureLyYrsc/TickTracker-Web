@@ -5,6 +5,8 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
+import Button from '@mui/material/Button'
+import Avatar from '@mui/material/Avatar'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import Drawer from '@mui/material/Drawer'
@@ -18,7 +20,10 @@ import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PaletteIcon from '@mui/icons-material/Palette'
-import { clearAuth } from '../lib/auth'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import PersonIcon from '@mui/icons-material/Person'
+import { clearAuth, useAuth } from '../lib/auth'
+import { apiFetch } from '../lib/api'
 import PaletteDialog from './PaletteDialog'
 
 export interface NavItem {
@@ -27,23 +32,50 @@ export interface NavItem {
   label: string
 }
 
+interface Profile {
+  name: string
+  qq_id: number | null
+  avatar_url: string | null
+}
+
 export default function AppLayout({ nav }: { nav: NavItem[] }) {
   const navigate = useNavigate()
   const location = useLocation()
   const theme = useTheme()
+  const auth = useAuth()
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
   const { mode, systemMode, setMode } = useColorScheme()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [profile, setProfile] = useState<Profile | null>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await apiFetch('/api/me/profile')
+        if (!res.ok) return
+        const data = await res.json()
+        setProfile({ name: data.name, qq_id: data.qq_id, avatar_url: data.avatar_url })
+      } catch {
+        /* 忽略 */
+      }
+    })()
+  }, [auth.role])
+
   const isDark = mounted && (mode === 'system' ? systemMode : mode) === 'dark'
 
   const active = nav.find((n) => location.pathname.startsWith(n.path)) ?? nav[0]
+
+  const inAdmin = location.pathname.startsWith('/admin')
+  const profilePath = inAdmin ? '/admin/profile' : '/user/profile'
+
+  const avatarSrc =
+    profile?.avatar_url ?? (profile?.qq_id ? `https://q1.qlogo.cn/g?b=qq&nk=${profile.qq_id}&s=640` : null)
 
   function logout() {
     clearAuth()
@@ -78,6 +110,17 @@ export default function AppLayout({ nav }: { nav: NavItem[] }) {
       </List>
       <Divider sx={{ my: 2 }} />
       <List>
+        <ListItemButton
+          onClick={() => {
+            setDrawerOpen(false)
+            navigate(profilePath)
+          }}
+        >
+          <Avatar src={avatarSrc ?? undefined} sx={{ width: 36, height: 36, mr: 1.5 }}>
+            {profile?.name?.charAt(0) ?? auth.userName?.charAt(0) ?? '?'}
+          </Avatar>
+          <ListItemText primary={profile?.name ?? auth.userName ?? '未知'} secondary="个人设置" />
+        </ListItemButton>
         <ListItemButton onClick={logout}>
           <ListItemIcon>
             <LogoutIcon />
@@ -100,6 +143,17 @@ export default function AppLayout({ nav }: { nav: NavItem[] }) {
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 500 }}>
             {active?.label ?? ''}
           </Typography>
+          {auth.role === 'admin' && (
+            <Button
+              variant="tonal"
+              size="small"
+              startIcon={inAdmin ? <PersonIcon /> : <AdminPanelSettingsIcon />}
+              onClick={() => navigate(inAdmin ? '/user/commissions' : '/admin/commissions')}
+              sx={{ mr: 1, height: 36 }}
+            >
+              {inAdmin ? '用户门户' : '管理员门户'}
+            </Button>
+          )}
           <IconButton onClick={() => setPaletteOpen(true)} aria-label="主题调色盘">
             <PaletteIcon />
           </IconButton>

@@ -92,6 +92,19 @@ export function createAppTheme(seed: string): Theme {
     },
     components: {
       MuiButton: {
+        variants: [
+          {
+            props: { variant: 'tonal' },
+            style: ({ theme }) => ({
+              backgroundColor: theme.palette.primaryContainer,
+              color: theme.palette.onPrimaryContainer,
+              '&:hover': {
+                backgroundColor: theme.palette.primaryContainer,
+                filter: 'brightness(0.94)',
+              },
+            }),
+          },
+        ],
         styleOverrides: {
           root: ({ theme }) => ({
             textTransform: 'none',
@@ -101,19 +114,6 @@ export function createAppTheme(seed: string): Theme {
             paddingLeft: 36,
             paddingRight: 36,
             fontWeight: 500,
-            variants: [
-              {
-                props: { variant: 'tonal' },
-                style: {
-                  backgroundColor: theme.palette.secondaryContainer,
-                  color: theme.palette.onSecondaryContainer,
-                  '&:hover': {
-                    backgroundColor: theme.palette.secondaryContainer,
-                    filter: 'brightness(0.94)',
-                  },
-                },
-              },
-            ],
           }),
         },
       },

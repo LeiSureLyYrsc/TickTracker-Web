@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import Snackbar from '@mui/material/Snackbar'
 import Alert, { type AlertColor } from '@mui/material/Alert'
 
@@ -6,9 +6,11 @@ interface ToastItem {
   id: number
   message: string
   type: AlertColor
+  duration: number
+  open: boolean
 }
 
-type ShowToast = (message: string, type?: AlertColor) => void
+type ShowToast = (message: string, type?: AlertColor, duration?: number) => void
 
 const ToastContext = createContext<ShowToast>(() => {})
 
@@ -16,21 +18,21 @@ let nextId = 1
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
-  const timers = useRef<Record<number, number>>({})
 
   const remove = useCallback((id: number) => {
     setToasts((list) => list.filter((t) => t.id !== id))
-    window.clearTimeout(timers.current[id])
-    delete timers.current[id]
+  }, [])
+
+  const dismiss = useCallback((id: number) => {
+    setToasts((list) => list.map((t) => (t.id === id ? { ...t, open: false } : t)))
   }, [])
 
   const show = useCallback<ShowToast>(
-    (message, type = 'info') => {
+    (message, type = 'info', duration = 4000) => {
       const id = nextId++
-      setToasts((list) => [...list, { id, message, type }])
-      timers.current[id] = window.setTimeout(() => remove(id), 4000)
+      setToasts((list) => [...list, { id, message, type, duration, open: true }])
     },
-    [remove],
+    [],
   )
 
   return (
@@ -39,12 +41,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toasts.map((t) => (
         <Snackbar
           key={t.id}
-          open
-          autoHideDuration={4000}
-          onClose={() => remove(t.id)}
+          open={t.open}
+          autoHideDuration={t.duration}
+          onClose={() => dismiss(t.id)}
+          slotProps={{
+            transition: {
+              onExited: () => remove(t.id),
+            },
+          }}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          <Alert variant="filled" severity={t.type} onClose={() => remove(t.id)} sx={{ width: '100%' }}>
+          <Alert
+            variant="filled"
+            severity={t.type}
+            onClose={() => dismiss(t.id)}
+            sx={{ width: '100%' }}
+          >
             {t.message}
           </Alert>
         </Snackbar>

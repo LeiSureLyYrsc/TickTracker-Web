@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -11,8 +11,6 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import IconButton from '@mui/material/IconButton'
 import LinearProgress from '@mui/material/LinearProgress'
-import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
 import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -25,9 +23,13 @@ import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
+import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import { apiFetch, readError } from '../../lib/api'
 import { useToast } from '../../lib/toast'
 import { useConfirm } from '../../lib/confirm'
+import { useColumnCount } from '../../lib/columns'
+import ColumnCountSelect from '../../components/ColumnCountSelect'
+import MasonryColumns from '../../components/MasonryColumns'
 import AliasDialog, { type AliasTarget } from '../../components/AliasDialog'
 import type { Game, GameGroup } from '../../types'
 
@@ -38,6 +40,7 @@ function formatDate(iso?: string) {
 export default function Games() {
   const toast = useToast()
   const confirm = useConfirm()
+  const { columns, setColumns } = useColumnCount('ct_games_cols')
   const [groups, setGroups] = useState<GameGroup[]>([])
   const [ungrouped, setUngrouped] = useState<Game[]>([])
   const [loading, setLoading] = useState(false)
@@ -142,20 +145,6 @@ export default function Games() {
     }
   }
 
-  async function moveGame(game: Game, groupIdValue: string) {
-    const groupId = groupIdValue === '' ? null : Number(groupIdValue)
-    const res = await apiFetch(`/api/admin/games/${game.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ group_id: groupId }),
-    })
-    if (res.ok) {
-      toast('游戏已移动', 'success')
-      load()
-    } else {
-      toast(await readError(res), 'error')
-    }
-  }
-
   async function deleteGame(game: Game) {
     const ok = await confirm({
       title: '删除游戏',
@@ -173,17 +162,6 @@ export default function Games() {
     }
   }
 
-  const groupOptions = (
-    <>
-      <MenuItem value="">未分组</MenuItem>
-      {groups.map((g) => (
-        <MenuItem key={g.id} value={String(g.id)}>
-          {g.name}
-        </MenuItem>
-      ))}
-    </>
-  )
-
   function renderGameRow(game: Game) {
     return (
       <TableRow key={game.id} hover>
@@ -198,16 +176,6 @@ export default function Games() {
           </Stack>
         </TableCell>
         <TableCell>{formatDate(game.created_at)}</TableCell>
-        <TableCell>
-          <Select
-            size="small"
-            value={game.group_id == null ? '' : String(game.group_id)}
-            onChange={(e) => moveGame(game, e.target.value)}
-            sx={{ minWidth: 120 }}
-          >
-            {groupOptions}
-          </Select>
-        </TableCell>
         <TableCell>
           <Stack direction="row" spacing={1}>
             <Button size="small" onClick={() => manageAliases(game)}>
@@ -231,10 +199,115 @@ export default function Games() {
     setAlias({ open: true, target: { type: 'game', id: game.id, name: game.name, aliases: game.aliases ?? [] } })
   }
 
+  function renderGroupCard(g: GameGroup) {
+    return (
+      <Card>
+        <CardHeader
+          title={
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <Typography variant="h6">{g.name}</Typography>
+              <Chip label={`${g.games?.length ?? 0} 个游戏`} size="small" />
+            </Stack>
+          }
+          action={
+            <Stack direction="row" spacing={0.5}>
+              <IconButton aria-label="改名" onClick={() => setRename({ open: true, group: g, name: g.name })}>
+                <EditIcon />
+              </IconButton>
+              <IconButton aria-label="删除组" color="error" onClick={() => deleteGroup(g)}>
+                <DeleteIcon />
+              </IconButton>
+            </Stack>
+          }
+        />
+        <CardContent>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+            <TextField
+              label="新游戏名"
+              value={gameDrafts[g.id] ?? ''}
+              onChange={(e) => setGameDrafts((d) => ({ ...d, [g.id]: e.target.value }))}
+              onKeyDown={(e) => e.key === 'Enter' && addGame(g.id)}
+              sx={{ flex: 1, maxWidth: { sm: 320 } }}
+            />
+            <Button variant="tonal" startIcon={<AddIcon />} onClick={() => addGame(g.id)} sx={{ alignSelf: 'center' }}>
+              添加游戏
+            </Button>
+          </Stack>
+
+          {(g.games ?? []).length ? (
+            <TableContainer>
+              <Table size="medium">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>游戏名</TableCell>
+                    <TableCell>别名</TableCell>
+                    <TableCell>创建时间</TableCell>
+                    <TableCell>操作</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>{g.games!.map(renderGameRow)}</TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+              组内暂无游戏
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  function renderUngroupedCard() {
+    return (
+      <Card>
+        <CardHeader
+          title={
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <Typography variant="h6">未分组</Typography>
+              <Chip label={`${ungrouped.length} 个游戏`} size="small" />
+            </Stack>
+          }
+        />
+        <CardContent>
+          <TableContainer>
+            <Table size="medium">
+              <TableHead>
+                <TableRow>
+                  <TableCell>游戏名</TableCell>
+                  <TableCell>别名</TableCell>
+                  <TableCell>创建时间</TableCell>
+                  <TableCell>操作</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>{ungrouped.map(renderGameRow)}</TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const masonryItems = useMemo(() => {
+    const items: Array<{ type: 'group'; group: GameGroup } | { type: 'ungrouped' }> = groups.map(
+      (g) => ({ type: 'group' as const, group: g }),
+    )
+    if (ungrouped.length) items.push({ type: 'ungrouped' as const })
+    return items
+  }, [groups, ungrouped])
+
   return (
     <Box>
       <Card sx={{ mb: 2 }}>
-        <CardHeader title="创建游戏组" titleTypographyProps={{ variant: 'h6' }} />
+        <CardHeader
+          title={
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <GroupAddIcon color="primary" />
+              <span>创建游戏组</span>
+            </Stack>
+          }
+          titleTypographyProps={{ variant: 'h6' }}
+        />
         <CardContent>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
@@ -253,92 +326,23 @@ export default function Games() {
 
       {loading && <LinearProgress />}
 
-      {groups.map((g) => (
-        <Card key={g.id} sx={{ mb: 2 }}>
-          <CardHeader
-            title={
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                <Typography variant="h6">{g.name}</Typography>
-                <Chip label={`${g.games?.length ?? 0} 个游戏`} size="small" />
-              </Stack>
-            }
-            action={
-              <Stack direction="row" spacing={0.5}>
-                <IconButton aria-label="改名" onClick={() => setRename({ open: true, group: g, name: g.name })}>
-                  <EditIcon />
-                </IconButton>
-                <IconButton aria-label="删除组" color="error" onClick={() => deleteGroup(g)}>
-                  <DeleteIcon />
-                </IconButton>
-              </Stack>
-            }
-          />
-          <CardContent>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
-              <TextField
-                label="新游戏名"
-                value={gameDrafts[g.id] ?? ''}
-                onChange={(e) => setGameDrafts((d) => ({ ...d, [g.id]: e.target.value }))}
-                onKeyDown={(e) => e.key === 'Enter' && addGame(g.id)}
-                sx={{ flex: 1, maxWidth: { sm: 320 } }}
-              />
-              <Button variant="tonal" startIcon={<AddIcon />} onClick={() => addGame(g.id)} sx={{ alignSelf: 'center' }}>
-                添加游戏
-              </Button>
-            </Stack>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ mb: 2, alignItems: 'center', flexWrap: 'wrap', rowGap: 1.5 }}
+      >
+        <Box sx={{ flexGrow: 1 }} />
+        <ColumnCountSelect value={columns} onChange={setColumns} />
+        <Button onClick={load}>刷新</Button>
+      </Stack>
 
-            {(g.games ?? []).length ? (
-              <TableContainer>
-                <Table size="medium">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>游戏名</TableCell>
-                      <TableCell>别名</TableCell>
-                      <TableCell>创建时间</TableCell>
-                      <TableCell>所属组</TableCell>
-                      <TableCell>操作</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>{g.games!.map(renderGameRow)}</TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
-                组内暂无游戏
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-
-      {ungrouped.length > 0 && (
-        <Card sx={{ mb: 2 }}>
-          <CardHeader
-            title={
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                <Typography variant="h6">未分组</Typography>
-                <Chip label={`${ungrouped.length} 个游戏`} size="small" />
-              </Stack>
-            }
-          />
-          <CardContent>
-            <TableContainer>
-              <Table size="medium">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>游戏名</TableCell>
-                    <TableCell>别名</TableCell>
-                    <TableCell>创建时间</TableCell>
-                    <TableCell>所属组</TableCell>
-                    <TableCell>操作</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>{ungrouped.map(renderGameRow)}</TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      )}
+      <MasonryColumns
+        items={masonryItems}
+        columns={columns}
+        renderItem={(item) =>
+          item.type === 'group' ? renderGroupCard(item.group) : renderUngroupedCard()
+        }
+      />
 
       <Dialog
         open={rename.open}

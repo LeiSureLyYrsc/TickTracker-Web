@@ -1,5 +1,5 @@
 {
-  "name": "ticktracker-web",
+  "name": "react-page",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -15,6 +15,7 @@
     "@material/material-color-utilities": "^0.4.0",
     "@mui/icons-material": "^9.0.0",
     "@mui/material": "^9.2.0",
+    "@simplewebauthn/browser": "^13.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.18.0"

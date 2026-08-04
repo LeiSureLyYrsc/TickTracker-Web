@@ -7,7 +7,9 @@ export function setUnauthorizedHandler(fn: () => void) {
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const isForm = options.body instanceof FormData
+  const headers: Record<string, string> = {}
+  if (!isForm) headers['Content-Type'] = 'application/json'
   const auth = getAuth()
   if (auth.token) headers['Authorization'] = `Bearer ${auth.token}`
   const extra = (options.headers as Record<string, string> | undefined) ?? {}

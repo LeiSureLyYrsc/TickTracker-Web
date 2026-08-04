@@ -15,8 +15,12 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
+import FolderIcon from '@mui/icons-material/Folder'
 import { apiFetch } from '../../lib/api'
 import { useToast } from '../../lib/toast'
+import { useColumnCount } from '../../lib/columns'
+import ColumnCountSelect from '../../components/ColumnCountSelect'
+import MasonryColumns from '../../components/MasonryColumns'
 import StatusChip from '../../components/StatusChip'
 import type { Commission } from '../../types'
 
@@ -39,6 +43,7 @@ function formatTime(iso: string) {
 
 export default function MyCommissions() {
   const toast = useToast()
+  const { columns, setColumns } = useColumnCount('ct_mycommissions_cols')
   const [records, setRecords] = useState<Commission[]>([])
   const [dues, setDues] = useState<MyGroupDue[]>([])
   const [loading, setLoading] = useState(false)
@@ -90,53 +95,68 @@ export default function MyCommissions() {
 
   return (
     <Box>
-      <Button onClick={load} sx={{ mb: 2 }}>
-        刷新
-      </Button>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ mb: 2, alignItems: 'center', flexWrap: 'wrap', rowGap: 1.5 }}
+      >
+        <Box sx={{ flexGrow: 1 }} />
+        <ColumnCountSelect value={columns} onChange={setColumns} />
+        <Button onClick={load}>刷新</Button>
+      </Stack>
       {loading && <LinearProgress />}
 
-      {groups.map((g) => (
-        <Card key={g.group_id ?? 'ungrouped'} sx={{ mb: 2 }}>
-          <CardHeader
-            title={g.group_name}
-            action={
-              g.group_id != null ? <Chip label={`应得 ${g.total}`} color="primary" /> : undefined
-            }
-            titleTypographyProps={{ variant: 'h6' }}
-          />
-          <Divider />
-          <CardContent sx={{ px: 0, pb: 0 }}>
-            <TableContainer>
-              <Table size="medium">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>游戏</TableCell>
-                    <TableCell>已完成</TableCell>
-                    <TableCell>今日状态</TableCell>
-                    <TableCell>最后打卡</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {g.games.map((r) => (
-                    <TableRow key={r.id} hover>
-                      <TableCell>
-                        <strong>{r.game_name}</strong>
-                      </TableCell>
-                      <TableCell>{r.completed_count}</TableCell>
-                      <TableCell>
-                        <StatusChip checked={r.checked_in} />
-                      </TableCell>
-                      <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>
-                        {r.last_checked_in_at ? formatTime(r.last_checked_in_at) : '-'}
-                      </TableCell>
+      <MasonryColumns
+        items={groups}
+        columns={columns}
+        renderItem={(g) => (
+          <Card>
+            <CardHeader
+              title={
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <FolderIcon color="primary" />
+                  <span>{g.group_name}</span>
+                </Stack>
+              }
+              action={
+                g.group_id != null ? <Chip label={`应得 ${g.total}`} color="primary" /> : undefined
+              }
+              titleTypographyProps={{ variant: 'h6' }}
+            />
+            <Divider />
+            <CardContent sx={{ px: 0, pb: 0 }}>
+              <TableContainer>
+                <Table size="medium">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>游戏</TableCell>
+                      <TableCell>已完成</TableCell>
+                      <TableCell>今日状态</TableCell>
+                      <TableCell>最后打卡</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      ))}
+                  </TableHead>
+                  <TableBody>
+                    {g.games.map((r) => (
+                      <TableRow key={r.id} hover>
+                        <TableCell>
+                          <strong>{r.game_name}</strong>
+                        </TableCell>
+                        <TableCell>{r.completed_count}</TableCell>
+                        <TableCell>
+                          <StatusChip checked={r.checked_in} />
+                        </TableCell>
+                        <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>
+                          {r.last_checked_in_at ? formatTime(r.last_checked_in_at) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        )}
+      />
 
       {!loading && groups.length === 0 && (
         <Typography color="text.secondary" align="center" sx={{ py: 4 }}>

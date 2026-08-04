@@ -39,7 +39,12 @@ export interface GameGroup {
 export interface User {
   id: number
   name: string
+  role?: 'user' | 'admin'
+  is_admin?: boolean
   qq_id: number | null
+  email: string | null
+  email_verified?: boolean
+  login_disabled?: boolean
   created_at: string
   aliases: string[]
 }
@@ -53,4 +58,57 @@ export interface Message {
   content: string
   created_at: string
   is_read: boolean
+}
+
+export interface AuditLog {
+  id: number
+  created_at: string
+  actor_type: string
+  actor_name: string
+  action: string
+  target: string | null
+  detail: string | null
+  ip: string | null
+}
+
+export interface OidcProvider {
+  id?: string
+  name: string
+  enabled: boolean
+  icon: string
+  icon_url?: string
+  client_id: string
+  client_secret: string
+  issuer: string
+  authorization_endpoint: string
+  token_endpoint: string
+  userinfo_endpoint: string
+  jwks_uri: string
+  scopes: string
+  allow_register: boolean
+}
+
+export interface SystemSettings {
+  reverse_proxy: boolean
+  allow_avatar_upload: boolean
+  smtp_host: string | null
+  smtp_port: number
+  smtp_user: string | null
+  smtp_password: string | null
+  smtp_from: string | null
+  smtp_security: string
+  allow_email_binding: boolean
+  allow_forgot_password: boolean
+  passkey_enabled: boolean
+  passkey_rp_ids: string[]
+  passkey_allow_http: boolean
+}
+
+export interface ReminderSetting {
+  user_id: number
+  user_name: string
+  qq_id: number | null
+  enabled: boolean
+  push_time: string
+  last_sent_date: string | null
 }

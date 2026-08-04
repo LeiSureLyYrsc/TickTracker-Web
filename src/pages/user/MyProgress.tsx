@@ -71,9 +71,25 @@ export default function MyProgress() {
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                 {name}
               </Typography>
-              <Stack direction="row" spacing={1} useFlexGap sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Stack direction="row" spacing={1} useFlexGap sx={{ justifyContent: 'center', flexWrap: 'wrap', rowGap: 1 }}>
                 {list.map((g) => (
-                  <StatusChip key={g.game_name} checked={g.checked_in} />
+                  <Stack
+                    key={g.game_name}
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                      alignItems: 'center',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 999,
+                      pl: 1.5,
+                      pr: 0.5,
+                      py: 0.5,
+                    }}
+                  >
+                    <Typography variant="body2">{g.game_name}</Typography>
+                    <StatusChip checked={g.checked_in} />
+                  </Stack>
                 ))}
               </Stack>
             </Box>
