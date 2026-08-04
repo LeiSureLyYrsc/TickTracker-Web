@@ -102,6 +102,18 @@ export interface SystemSettings {
   passkey_enabled: boolean
   passkey_rp_ids: string[]
   passkey_allow_http: boolean
+  render_enabled_help: boolean
+  render_enabled_list: boolean
+  render_enabled_progress: boolean
+  render_enabled_reminder: boolean
+  render_template: string
+  render_font: string
+  render_font_dir: string
+}
+
+export interface FontItem {
+  name: string
+  family: string
 }
 
 export interface ReminderSetting {

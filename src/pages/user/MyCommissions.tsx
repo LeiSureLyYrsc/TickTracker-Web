@@ -46,6 +46,7 @@ export default function MyCommissions() {
   const { columns, setColumns } = useColumnCount('ct_mycommissions_cols')
   const [records, setRecords] = useState<Commission[]>([])
   const [dues, setDues] = useState<MyGroupDue[]>([])
+  const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
 
   const groups = useMemo<GroupView[]>(() => {
@@ -75,13 +76,15 @@ export default function MyCommissions() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [cRes, dRes] = await Promise.all([
+      const [cRes, dRes, nRes] = await Promise.all([
         apiFetch('/api/user/me/commissions'),
         apiFetch('/api/user/me/group-commissions'),
+        apiFetch('/api/user/me/note'),
       ])
-      if (!cRes.ok || !dRes.ok) throw new Error()
+      if (!cRes.ok || !dRes.ok || !nRes.ok) throw new Error()
       setRecords((await cRes.json()) as Commission[])
       setDues((await dRes.json()) as MyGroupDue[])
+      setNote(((await nRes.json()) as { content: string }).content ?? '')
     } catch {
       toast('加载失败', 'error')
     } finally {
@@ -95,6 +98,24 @@ export default function MyCommissions() {
 
   return (
     <Box>
+      {note && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 2,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'primary.main',
+            bgcolor: 'primaryContainer',
+            color: 'onPrimaryContainer',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 0.5 }}>
+            今日备注
+          </Typography>
+          <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{note}</Typography>
+        </Box>
+      )}
       <Stack
         direction="row"
         spacing={2}

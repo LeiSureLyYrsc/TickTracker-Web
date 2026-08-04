@@ -30,6 +30,7 @@ import MyProgress from './pages/user/MyProgress'
 import SendMessage from './pages/user/SendMessage'
 import Profile from './pages/Profile'
 import OidcCallback from './pages/OidcCallback'
+import OidcLinkCallback from './pages/OidcLinkCallback'
 
 const adminNav: NavItem[] = [
   { path: '/admin/commissions', icon: <TableChartIcon />, label: '代肝数据' },
@@ -74,6 +75,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/oidc/callback" element={<OidcCallback />} />
+            <Route path="/oidc/link-callback" element={<OidcLinkCallback />} />
             <Route
               path="/admin"
               element={

@@ -6,8 +6,10 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import CardHeader from '@mui/material/CardHeader'
 import Chip from '@mui/material/Chip'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import LinearProgress from '@mui/material/LinearProgress'
 import Stack from '@mui/material/Stack'
+import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
@@ -15,9 +17,13 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import LockResetIcon from '@mui/icons-material/LockReset'
 import EmailIcon from '@mui/icons-material/Email'
 import KeyIcon from '@mui/icons-material/Key'
+import LinkIcon from '@mui/icons-material/Link'
+import LinkOffIcon from '@mui/icons-material/LinkOff'
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import { startRegistration } from '@simplewebauthn/browser'
 import { apiFetch, readError } from '../lib/api'
 import { useToast } from '../lib/toast'
+import OidcIcon from '../lib/oidcIcons'
 
 interface ProfileData {
   role: 'admin' | 'user'
@@ -32,12 +38,34 @@ interface ProfileData {
   avatar_upload_allowed: boolean
   allow_email_binding: boolean
   passkey_enabled: boolean
+  oidc_enabled: boolean
 }
 
 interface PasskeyItem {
   id: number
   credential_id: string
   created_at: string | null
+}
+
+interface SsoProvider {
+  id: string
+  name: string
+  icon: string
+  icon_url?: string
+}
+
+interface SsoBinding {
+  provider_id: string
+  provider_name: string
+  icon: string
+  icon_url?: string
+  email: string | null
+}
+
+interface MyReminder {
+  enabled: boolean
+  push_time: string
+  last_sent_date: string | null
 }
 
 export default function Profile() {
@@ -52,6 +80,10 @@ export default function Profile() {
   const [bindCode, setBindCode] = useState('')
   const [bindSent, setBindSent] = useState(false)
   const [passkeys, setPasskeys] = useState<PasskeyItem[]>([])
+  const [ssoProviders, setSsoProviders] = useState<SsoProvider[]>([])
+  const [ssoBindings, setSsoBindings] = useState<SsoBinding[]>([])
+  const [reminder, setReminder] = useState<MyReminder>({ enabled: false, push_time: '22:00', last_sent_date: null })
+  const [reminderTime, setReminderTime] = useState('22:00')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -82,6 +114,82 @@ export default function Profile() {
   useEffect(() => {
     if (profile?.passkey_enabled) loadPasskeys()
   }, [profile?.passkey_enabled, loadPasskeys])
+
+  useEffect(() => {
+    if (!profile?.oidc_enabled) return
+    ;(async () => {
+      try {
+        const [pRes, bRes] = await Promise.all([
+          fetch('/api/oidc/providers'),
+          apiFetch('/api/oidc/my-bindings'),
+        ])
+        if (pRes.ok) setSsoProviders((await pRes.json()) as SsoProvider[])
+        if (bRes.ok) setSsoBindings((await bRes.json()) as SsoBinding[])
+      } catch {
+        /* 忽略 */
+      }
+    })()
+  }, [profile?.oidc_enabled])
+
+  async function unlinkSso(providerId: string) {
+    const res = await apiFetch(`/api/oidc/bindings/${providerId}`, { method: 'DELETE' })
+    if (res.ok) {
+      toast('已解绑', 'success')
+      setSsoBindings((list) => list.filter((b) => b.provider_id !== providerId))
+    } else {
+      toast(await readError(res), 'error')
+    }
+  }
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await apiFetch('/api/user/me/reminder')
+        if (res.ok) {
+          const data = (await res.json()) as MyReminder
+          setReminder(data)
+          setReminderTime(data.push_time)
+        }
+      } catch {
+        /* 忽略 */
+      }
+    })()
+  }, [])
+
+  async function saveReminder(patch: { enabled?: boolean; push_time?: string }) {
+    const res = await apiFetch('/api/user/me/reminder', {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    })
+    if (res.ok) {
+      const data = (await res.json()) as MyReminder
+      setReminder(data)
+      setReminderTime(data.push_time)
+      toast(data.enabled ? '提醒已启用' : '提醒已关闭', 'success')
+    } else {
+      toast(await readError(res), 'error')
+    }
+  }
+
+  function saveReminderTime() {
+    const t = reminderTime.trim()
+    if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(t)) return toast('时间格式应为 HH:MM，如 22:00', 'error')
+    saveReminder({ push_time: t })
+  }
+
+  async function linkSso(providerId: string) {
+    try {
+      const res = await apiFetch(`/api/oidc/link/start/${providerId}`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        window.location.href = data.url as string
+      } else {
+        toast(await readError(res), 'error')
+      }
+    } catch {
+      toast('绑定失败', 'error')
+    }
+  }
 
   const avatarSrc =
     profile?.avatar_url ?? (profile?.qq_id ? `https://q1.qlogo.cn/g?b=qq&nk=${profile.qq_id}&s=640` : null)
@@ -334,6 +442,112 @@ export default function Profile() {
           </CardContent>
         </Card>
       )}
+
+      {profile?.oidc_enabled && (
+        <Card>
+          <CardHeader
+            title={
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <LinkIcon color="primary" />
+                <span>SSO 绑定</span>
+              </Stack>
+            }
+            titleTypographyProps={{ variant: 'h6' }}
+          />
+          <CardContent>
+            {ssoProviders.length === 0 ? (
+              <Typography color="text.secondary">暂无可用登录方式</Typography>
+            ) : (
+              <Stack spacing={1.5}>
+                {ssoProviders.map((p) => {
+                  const bound = ssoBindings.find((b) => b.provider_id === p.id)
+                  return (
+                    <Stack
+                      key={p.id}
+                      direction="row"
+                      spacing={1.5}
+                      sx={{ alignItems: 'center', justifyContent: 'space-between' }}
+                    >
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                        <OidcIcon icon={p.icon} iconUrl={p.icon_url} />
+                        <Typography variant="body1">{p.name}</Typography>
+                        {bound?.email && (
+                          <Typography variant="caption" color="text.secondary">
+                            {bound.email}
+                          </Typography>
+                        )}
+                      </Stack>
+                      {bound ? (
+                        <Button size="small" color="error" variant="outlined" onClick={() => unlinkSso(p.id)}>
+                          解绑
+                        </Button>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="tonal"
+                          startIcon={<LinkIcon />}
+                          onClick={() => linkSso(p.id)}
+                        >
+                          绑定
+                        </Button>
+                      )}
+                    </Stack>
+                  )
+                })}
+                <Typography variant="caption" color="text.secondary">
+                  绑定后可用该登录方式快速登录本账号
+                </Typography>
+              </Stack>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader
+          title={
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <NotificationsActiveIcon color="primary" />
+              <span>定时提醒</span>
+            </Stack>
+          }
+          titleTypographyProps={{ variant: 'h6' }}
+        />
+        <CardContent>
+          <Stack spacing={2}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={reminder.enabled}
+                  onChange={(e) => saveReminder({ enabled: e.target.checked })}
+                />
+              }
+              label="启用每日代肝提醒"
+            />
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <TextField
+                label="推送时间 HH:MM"
+                value={reminderTime}
+                disabled={!reminder.enabled}
+                onChange={(e) => setReminderTime(e.target.value)}
+                sx={{ width: 180 }}
+              />
+              <Button variant="tonal" disabled={!reminder.enabled} onClick={saveReminderTime}>
+                保存时间
+              </Button>
+            </Stack>
+            <Typography variant="caption" color="text.secondary">
+              {reminder.enabled
+                ? `已启用 · 每天 ${reminder.push_time} 推送${
+                    reminder.last_sent_date === new Date().toISOString().slice(0, 10)
+                      ? ' · 今日已推送'
+                      : ''
+                  }`
+                : '启用后每天按时推送今日代肝状态'}
+            </Typography>
+          </Stack>
+        </CardContent>
+      </Card>
 
       {profile?.passkey_enabled && (
         <Card>

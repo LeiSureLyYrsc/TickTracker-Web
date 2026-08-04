@@ -26,10 +26,12 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
 import TravelExploreIcon from '@mui/icons-material/TravelExplore'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import ImageIcon from '@mui/icons-material/Image'
 import { apiFetch, readError } from '../../lib/api'
 import { useToast } from '../../lib/toast'
 import OidcIcon from '../../lib/oidcIcons'
-import type { OidcProvider, SystemSettings } from '../../types'
+import type { FontItem, OidcProvider, SystemSettings } from '../../types'
 
 const ICON_OPTIONS = ['google', 'github', 'microsoft', 'discord', 'gitlab', 'qq', 'generic']
 
@@ -47,6 +49,13 @@ const DEFAULT_SETTINGS: SystemSettings = {
   passkey_enabled: false,
   passkey_rp_ids: [],
   passkey_allow_http: false,
+  render_enabled_help: false,
+  render_enabled_list: false,
+  render_enabled_progress: false,
+  render_enabled_reminder: false,
+  render_template: 'shadcn',
+  render_font: '',
+  render_font_dir: './data/fonts',
 }
 
 function emptyProvider(): OidcProvider {
@@ -78,6 +87,7 @@ export default function Settings() {
   const [discovering, setDiscovering] = useState(false)
   const [testEmail, setTestEmail] = useState('')
   const [testing, setTesting] = useState(false)
+  const [fonts, setFonts] = useState<FontItem[]>([])
 
   const loadSettings = useCallback(async () => {
     setLoading(true)
@@ -103,10 +113,33 @@ export default function Settings() {
     }
   }, [toast])
 
+  const loadFonts = useCallback(async () => {
+    try {
+      const res = await apiFetch('/api/admin/fonts')
+      if (res.ok) {
+        const data = await res.json()
+        setFonts((data.fonts ?? []) as FontItem[])
+      }
+    } catch {
+      /* 忽略 */
+    }
+  }, [])
+
   useEffect(() => {
     loadSettings()
     loadProviders()
-  }, [loadSettings, loadProviders])
+    loadFonts()
+  }, [loadSettings, loadProviders, loadFonts])
+
+  async function refreshFonts() {
+    try {
+      await apiFetch('/api/admin/fonts/reload', { method: 'POST' })
+      await loadFonts()
+      toast('字体列表已刷新', 'success')
+    } catch {
+      toast('刷新字体列表失败', 'error')
+    }
+  }
 
   async function saveSettings(patch: Partial<SystemSettings>) {
     setSaving(true)
@@ -290,9 +323,9 @@ export default function Settings() {
               />
               <TextField
                 label="端口"
-                type="number"
                 value={settings.smtp_port}
                 onChange={(e) => setSettings({ ...settings, smtp_port: Number(e.target.value) || 587 })}
+                slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
                 sx={{ width: 110 }}
               />
             </Stack>
@@ -442,6 +475,123 @@ export default function Settings() {
                   passkey_enabled: settings.passkey_enabled,
                   passkey_rp_ids: settings.passkey_rp_ids,
                   passkey_allow_http: settings.passkey_allow_http,
+                })
+              }
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              保存
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 2 }}>
+        <CardHeader
+          title={
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <ImageIcon color="primary" />
+              <span>消息渲染（文转图）</span>
+            </Stack>
+          }
+          titleTypographyProps={{ variant: 'h6' }}
+        />
+        <CardContent>
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary">
+              开启后对应消息将以图片形式发送。需要安装 Playwright 并执行{' '}
+              <code>playwright install chromium</code>；未安装时自动回退为纯文本。
+            </Typography>
+            <Stack direction="row" spacing={3} useFlexGap sx={{ flexWrap: 'wrap' }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.render_enabled_help}
+                    onChange={(e) => setSettings({ ...settings, render_enabled_help: e.target.checked })}
+                  />
+                }
+                label="代肝帮助"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.render_enabled_list}
+                    onChange={(e) => setSettings({ ...settings, render_enabled_list: e.target.checked })}
+                  />
+                }
+                label="代肝列表"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.render_enabled_progress}
+                    onChange={(e) => setSettings({ ...settings, render_enabled_progress: e.target.checked })}
+                  />
+                }
+                label="进度查询"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.render_enabled_reminder}
+                    onChange={(e) => setSettings({ ...settings, render_enabled_reminder: e.target.checked })}
+                  />
+                }
+                label="提醒推送通知"
+              />
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Box sx={{ minWidth: 180 }}>
+                <InputLabel>页面模板</InputLabel>
+                <Select
+                  size="small"
+                  fullWidth
+                  value={settings.render_template}
+                  onChange={(e) => setSettings({ ...settings, render_template: e.target.value })}
+                >
+                  <MenuItem value="shadcn">shadcn-ui 风格</MenuItem>
+                  <MenuItem value="apple">苹果风格</MenuItem>
+                  <MenuItem value="material">原生安卓风格</MenuItem>
+                  <MenuItem value="shell">Command Shell 风格</MenuItem>
+                </Select>
+              </Box>
+              <Box sx={{ minWidth: 220 }}>
+                <InputLabel>字体</InputLabel>
+                <Select
+                  size="small"
+                  fullWidth
+                  value={settings.render_font}
+                  onChange={(e) => setSettings({ ...settings, render_font: e.target.value })}
+                >
+                  <MenuItem value="">系统字体（默认）</MenuItem>
+                  {fonts.map((f) => (
+                    <MenuItem key={f.name} value={f.name}>
+                      {f.family}（{f.name}）
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+              <TextField
+                label="字体目录"
+                value={settings.render_font_dir}
+                disabled
+                sx={{ flex: 1 }}
+                helperText="默认 ./data/fonts（固定，不可修改），字体仅由本地渲染使用，不会对外提供"
+              />
+              <Button variant="tonal" startIcon={<RefreshIcon />} onClick={refreshFonts}>
+                刷新字体
+              </Button>
+            </Stack>
+            <Button
+              variant="contained"
+              disabled={saving}
+              onClick={() =>
+                saveSettings({
+                  render_enabled_help: settings.render_enabled_help,
+                  render_enabled_list: settings.render_enabled_list,
+                  render_enabled_progress: settings.render_enabled_progress,
+                  render_enabled_reminder: settings.render_enabled_reminder,
+                  render_template: settings.render_template,
+                  render_font: settings.render_font,
                 })
               }
               sx={{ alignSelf: 'flex-start' }}
