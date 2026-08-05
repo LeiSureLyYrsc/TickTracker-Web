@@ -20,11 +20,13 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import SearchIcon from '@mui/icons-material/Search'
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
+import EditIcon from '@mui/icons-material/Edit'
 import { apiFetch, readError } from '../../lib/api'
 import { useToast } from '../../lib/toast'
 import { useConfirm } from '../../lib/confirm'
 import { useColumnCount } from '../../lib/columns'
 import ColumnCountSelect from '../../components/ColumnCountSelect'
+import EditCommissionDialog from '../../components/EditCommissionDialog'
 import MasonryColumns from '../../components/MasonryColumns'
 import FilterMultiSelect from '../../components/FilterMultiSelect'
 import StatusChip from '../../components/StatusChip'
@@ -63,9 +65,9 @@ export default function Commissions() {
 
   const [gameUser, setGameUser] = useState('')
   const [gameId, setGameId] = useState('')
-  const [dueDrafts, setDueDrafts] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<number, string>>({})
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({})
+  const [editing, setEditing] = useState<{ record: Commission; total: number } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -245,29 +247,6 @@ export default function Commissions() {
     }
   }
 
-  async function saveDue(ug: UserGroup, gv: GroupView, value: number) {
-    if (gv.group_id == null) return
-    const res = await apiFetch('/api/admin/group-commissions', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_name: ug.user_name,
-        game_group_id: gv.group_id,
-        total_count: value,
-      }),
-    })
-    if (res.ok) {
-      setDueDrafts((d) => {
-        const next = { ...d }
-        delete next[`${ug.user_id}:${gv.group_id}`]
-        return next
-      })
-      toast('应得次数已更新', 'success')
-      load()
-    } else {
-      toast(await readError(res), 'error')
-    }
-  }
-
   async function checkin(r: Commission) {
     const res = await apiFetch('/api/admin/checkin', {
       method: 'POST',
@@ -278,22 +257,6 @@ export default function Commissions() {
     r.checked_in = true
     setRecords((list) => [...list])
     toast('打卡成功', 'success')
-  }
-
-  async function updateCompleted(r: Commission, value: string) {
-    const num = Number(value)
-    if (isNaN(num)) return toast('请输入有效数字', 'error')
-    const res = await apiFetch(`/api/admin/commissions/${r.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ completed_count: num }),
-    })
-    if (res.ok) {
-      r.completed_count = num
-      setRecords((list) => [...list])
-      toast('已完成次数已更新', 'success')
-    } else {
-      toast(await readError(res), 'error')
-    }
   }
 
   async function saveNote(userId: number) {
@@ -468,7 +431,6 @@ export default function Commissions() {
                 </Stack>
               </Box>
               {ug.groups.map((gv) => {
-                const gkey = gv.group_id != null ? `${ug.user_id}:${gv.group_id}` : ''
                 return (
                 <Box key={gv.group_id ?? 'ungrouped'} sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                   <Stack
@@ -481,21 +443,7 @@ export default function Commissions() {
                     </Typography>
                     {gv.group_id != null && (
                       <>
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                          <Typography variant="body2" color="text.secondary">
-                            应得
-                          </Typography>
-                          <TextField
-                            type="number"
-                            size="small"
-                            value={dueDrafts[gkey] ?? gv.total}
-                            onChange={(e) =>
-                              setDueDrafts((d) => ({ ...d, [gkey]: Number(e.target.value) || 0 }))
-                            }
-                            onBlur={() => saveDue(ug, gv, dueDrafts[gkey] ?? gv.total)}
-                            sx={{ width: 96 }}
-                          />
-                        </Stack>
+                        <Chip label={`应得 ${gv.total}`} size="small" color="primary" variant="outlined" />
                         <Chip label={`已完 ${gv.completed}`} size="small" variant="outlined" />
                         <Chip label={`已打卡 ${gv.checkedCount}/${gv.games.length}`} size="small" />
                       </>
@@ -518,15 +466,7 @@ export default function Commissions() {
                               <TableCell>
                                 <strong>{r.game_name}</strong>
                               </TableCell>
-                              <TableCell>
-                                <TextField
-                                  type="number"
-                                  size="small"
-                                  defaultValue={r.completed_count}
-                                  sx={{ width: 96 }}
-                                  onBlur={(e) => updateCompleted(r, e.target.value)}
-                                />
-                              </TableCell>
+                              <TableCell>{r.completed_count}</TableCell>
                               <TableCell>
                                 <StatusChip checked={r.checked_in} />
                               </TableCell>
@@ -534,6 +474,13 @@ export default function Commissions() {
                                 <Stack direction="row" spacing={1.5}>
                                   <Button variant="tonal" onClick={() => checkin(r)}>
                                     打卡
+                                  </Button>
+                                  <Button
+                                    startIcon={<EditIcon />}
+                                    variant="outlined"
+                                    onClick={() => setEditing({ record: r, total: gv.total })}
+                                  >
+                                    修改
                                   </Button>
                                   <Button color="error" variant="outlined" onClick={() => removeGame(r)}>
                                     删除
@@ -563,6 +510,17 @@ export default function Commissions() {
           {search || groupFilter.length > 0 || gameFilter.length > 0 ? '无匹配用户' : '暂无记录'}
         </Typography>
       )}
+
+      <EditCommissionDialog
+        open={!!editing}
+        record={editing?.record ?? null}
+        groupTotal={editing?.total ?? 0}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null)
+          load()
+        }}
+      />
     </Box>
   )
 }
