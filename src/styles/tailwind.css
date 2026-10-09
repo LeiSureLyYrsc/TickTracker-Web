@@ -92,55 +92,56 @@
   }
 }
 
-@layer utilities {
-  .pb-safe {
-    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
-  }
-  .no-scrollbar::-webkit-scrollbar {
+/* ============ 自定义工具（@utility，支持 data-* / group-data-* 变体） ============ */
+@utility safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
     display: none;
   }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .tnum {
-    font-variant-numeric: tabular-nums;
-  }
+}
 
-  /* ============ 弹出式动态效果 ============ */
-  .anim-overlay-in {
-    animation: tt-overlay-in 150ms ease-out;
-  }
-  .anim-overlay-out {
-    animation: tt-overlay-in 120ms ease-in reverse;
-  }
-  .anim-pop-in {
-    animation: tt-pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .anim-pop-out {
-    animation: tt-pop-in 130ms ease-in reverse;
-  }
-  .anim-sheet-up {
-    animation: tt-sheet-up 260ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .anim-sheet-down {
-    animation: tt-sheet-up 160ms ease-in reverse;
-  }
-  .anim-slide-right {
-    animation: tt-slide-right 240ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .anim-slide-left {
-    animation: tt-slide-left 240ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .anim-fade-up {
-    animation: tt-fade-up 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .anim-fade-in {
-    animation: tt-overlay-in 200ms ease-out both;
-  }
-  .anim-pop {
-    animation: tt-pop 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============ 弹出式动态效果 ============ */
+@utility anim-overlay-in {
+  animation: tt-overlay-in 160ms ease-out;
+}
+@utility anim-overlay-out {
+  animation: tt-overlay-out 130ms ease-in;
+}
+@utility anim-pop-in {
+  animation: tt-pop-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@utility anim-pop-out {
+  animation: tt-pop-out 140ms ease-in;
+}
+@utility anim-sheet-up {
+  animation: tt-sheet-up 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@utility anim-sheet-down {
+  animation: tt-sheet-down 200ms ease-in;
+}
+@utility anim-slide-right {
+  animation: tt-slide-right 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@utility anim-slide-left {
+  animation: tt-slide-left 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@utility anim-fade-up {
+  animation: tt-fade-up 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@utility anim-fade-in {
+  animation: tt-fade-in 200ms ease-out both;
+}
+@utility anim-pop {
+  animation: tt-pop 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes tt-overlay-in {
@@ -151,14 +152,32 @@
     opacity: 1;
   }
 }
+@keyframes tt-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 @keyframes tt-pop-in {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(6px);
+    transform: scale(0.95) translateY(8px);
   }
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+@keyframes tt-pop-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
   }
 }
 @keyframes tt-sheet-up {
@@ -171,10 +190,20 @@
     transform: translateY(0);
   }
 }
+@keyframes tt-sheet-down {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
 @keyframes tt-slide-right {
   from {
     opacity: 0;
-    transform: translateX(-16px);
+    transform: translateX(-24px);
   }
   to {
     opacity: 1;
@@ -184,7 +213,7 @@
 @keyframes tt-slide-left {
   from {
     opacity: 0;
-    transform: translateX(16px);
+    transform: translateX(24px);
   }
   to {
     opacity: 1;
@@ -201,6 +230,14 @@
     transform: translateY(0);
   }
 }
+@keyframes tt-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 @keyframes tt-pop {
   0% {
     transform: scale(1);
@@ -214,17 +251,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .anim-overlay-in,
-  .anim-overlay-out,
-  .anim-pop-in,
-  .anim-pop-out,
-  .anim-sheet-up,
-  .anim-sheet-down,
-  .anim-slide-right,
-  .anim-slide-left,
-  .anim-fade-up,
-  .anim-fade-in,
-  .anim-pop {
+  [class*='anim-'] {
     animation: none !important;
   }
 }

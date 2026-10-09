@@ -163,7 +163,7 @@ function logout() {
           v-for="n in bottom"
           :key="n.path"
           type="button"
-          class="relative flex flex-1 flex-col items-center gap-0.5 py-2 pb-safe text-[11px] transition-colors"
+          class="relative flex flex-1 flex-col items-center gap-0.5 py-2 safe-bottom text-[11px] transition-colors"
           :class="route.path.startsWith(n.path) ? 'text-accent' : 'text-dim'"
           @click="go(n.path)"
         >
@@ -177,7 +177,7 @@ function logout() {
         <button
           v-if="overflow.length"
           type="button"
-          class="flex flex-1 flex-col items-center gap-0.5 py-2 pb-safe text-[11px] text-dim"
+          class="flex flex-1 flex-col items-center gap-0.5 py-2 safe-bottom text-[11px] text-dim"
           @click="drawerOpen = true"
         >
           <Menu class="h-5 w-5" />
