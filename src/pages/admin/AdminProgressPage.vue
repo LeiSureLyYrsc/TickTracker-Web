@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { RefreshCw, Search, Users } from '@lucide/vue'
+import { Pin, RefreshCw, Search, Users } from '@lucide/vue'
 import { Api } from '@/lib/api'
 import { qk } from '@/lib/query'
 import type { Commission } from '@/lib/types'
@@ -11,8 +11,10 @@ import Panel from '@/components/ui/Panel.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import { usePinnedUsers } from '@/composables/usePinnedUsers'
 
 const qc = useQueryClient()
+const { isPinned, toggle: togglePin, sortPinned } = usePinnedUsers()
 const search = ref('')
 const { data, isLoading } = useQuery<Commission[]>({
   queryKey: qk.admin.commissions,
@@ -21,10 +23,12 @@ const { data, isLoading } = useQuery<Commission[]>({
 })
 
 const groups = computed(() => {
-  const map = new Map<string, { name: string; list: Commission[]; done: number }>()
+  const map = new Map<number, { user_id: number; name: string; list: Commission[]; done: number }>()
   for (const r of data.value ?? []) {
-    if (!map.has(r.user_name)) map.set(r.user_name, { name: r.user_name, list: [], done: 0 })
-    const g = map.get(r.user_name)!
+    if (!map.has(r.user_id)) {
+      map.set(r.user_id, { user_id: r.user_id, name: r.user_name, list: [], done: 0 })
+    }
+    const g = map.get(r.user_id)!
     g.list.push(r)
     if (r.checked_in) g.done += 1
   }
@@ -33,7 +37,9 @@ const groups = computed(() => {
 
 const visible = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return q ? groups.value.filter((g) => g.name.toLowerCase().includes(q)) : groups.value
+  const matched = q ? groups.value.filter((g) => g.name.toLowerCase().includes(q)) : groups.value
+  // 置顶用户排最前
+  return sortPinned(matched, (g) => g.user_id)
 })
 </script>
 
@@ -57,12 +63,24 @@ const visible = computed(() => {
       <template #icon><Users class="h-8 w-8 text-dim" /></template>
     </EmptyState>
     <div v-else class="grid gap-3 md:grid-cols-2">
-      <Panel v-for="g in visible" :key="g.name" class="anim-fade-up p-4">
+      <Panel v-for="g in visible" :key="g.user_id" class="anim-fade-up p-4">
         <div class="mb-2 flex items-center justify-between gap-2">
           <h3 class="truncate font-semibold">{{ g.name }}</h3>
-          <span class="shrink-0 rounded-full border border-accent/30 bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent tnum">
-            {{ g.done }}/{{ g.list.length }}
-          </span>
+          <div class="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              class="rounded-md p-1 transition-colors"
+              :class="isPinned(g.user_id) ? 'text-accent' : 'text-dim hover:text-text'"
+              :aria-label="isPinned(g.user_id) ? '取消置顶' : '置顶到最前'"
+              :title="isPinned(g.user_id) ? '取消置顶' : '置顶到最前'"
+              @click="togglePin(g.user_id)"
+            >
+              <Pin class="h-4 w-4" />
+            </button>
+            <span class="rounded-full border border-accent/30 bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent tnum">
+              {{ g.done }}/{{ g.list.length }}
+            </span>
+          </div>
         </div>
         <div class="flex flex-wrap gap-2">
           <div

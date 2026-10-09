@@ -30,6 +30,7 @@ export const qk = {
     template: ['admin', 'reminders', 'template'] as const,
     settings: ['admin', 'settings'] as const,
     fonts: ['admin', 'fonts'] as const,
+    pinnedUsers: ['admin', 'pinned-users'] as const,
   },
   user: {
     root: ['user'] as const,

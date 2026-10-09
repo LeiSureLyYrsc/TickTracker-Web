@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NotebookPen, Pencil, Plus, RefreshCw, Search, Trash2, Users } from '@lucide/vue'
+import { NotebookPen, Pencil, Pin, Plus, RefreshCw, Search, Trash2, Users } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { Api } from '@/lib/api'
 import { qk } from '@/lib/query'
@@ -20,9 +20,11 @@ import Switch from '@/components/ui/Switch.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import CheckinButton from '@/components/common/CheckinButton.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { usePinnedUsers } from '@/composables/usePinnedUsers'
 
 const qc = useQueryClient()
 const confirm = useConfirm()
+const { isPinned, toggle: togglePin, sortPinned } = usePinnedUsers()
 
 const search = ref('')
 const groupSel = ref<string[]>([])
@@ -204,7 +206,7 @@ function groupIndexSafe(userId: number, groupId: number | null) {
   return gcIndex.value.get(`${userId}:${groupId}`)
 }
 
-const filtered = computed(() => {
+const matched = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (!q) return views.value
   return views.value.filter(
@@ -214,6 +216,9 @@ const filtered = computed(() => {
       v.aliases.some((a) => a.toLowerCase().includes(q)),
   )
 })
+
+// 置顶用户排最前，其余保持原顺序（按用户 ID）
+const filtered = computed(() => sortPinned(matched.value, (v) => v.user_id))
 
 const hasFilter = computed(
   () => !!search.value || groupSel.value.length > 0 || gameSel.value.length > 0 || status.value !== 'all',
@@ -463,6 +468,16 @@ const addGameOptions = computed(() =>
               uv.gamesCount
             }}
           </span>
+          <button
+            type="button"
+            class="rounded-md p-1 transition-colors"
+            :class="isPinned(uv.user_id) ? 'text-accent' : 'text-dim hover:text-text'"
+            :aria-label="isPinned(uv.user_id) ? '取消置顶' : '置顶到最前'"
+            :title="isPinned(uv.user_id) ? '取消置顶' : '置顶到最前'"
+            @click="togglePin(uv.user_id)"
+          >
+            <Pin class="h-4 w-4" />
+          </button>
         </div>
 
         <div class="mb-3 flex items-center gap-2">
