@@ -54,6 +54,9 @@ const save = useMutation({
     form.value = { ...d }
     rpIds.value = (d.passkey_rp_ids ?? []).join(', ')
     qc.setQueryData(qk.admin.settings, d)
+    // 设置项可能影响登录页配置与个人设置页，主动失效以便立即刷新
+    qc.invalidateQueries({ queryKey: qk.authConfig })
+    qc.invalidateQueries({ queryKey: qk.profile })
   },
   onError: (e: unknown) => toast.error(e instanceof Error ? e.message : '保存失败'),
 })

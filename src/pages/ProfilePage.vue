@@ -7,6 +7,7 @@ import { Api, apiFetch, readError } from '@/lib/api'
 import { qk } from '@/lib/query'
 import { registerPasskey } from '@/lib/webauthn'
 import { formatDate } from '@/lib/format'
+import { bumpAvatar, buildAvatarUrl } from '@/lib/avatar'
 import type { MyReminder, PasskeyItem, Profile, SsoBinding } from '@/lib/types'
 import Badge from '@/components/ui/Badge.vue'
 import Button from '@/components/ui/Button.vue'
@@ -125,6 +126,7 @@ async function onAvatar(e: Event) {
   const res = await apiFetch('/api/me/avatar', { method: 'POST', body: form })
   if (res.ok) {
     toast.success('头像已更新')
+    bumpAvatar()
     invalidateProfile()
   } else {
     toast.error(await readError(res))
@@ -135,6 +137,7 @@ async function removeAvatar() {
   const res = await apiFetch('/api/me/avatar', { method: 'DELETE' })
   if (res.ok) {
     toast.success('头像已删除')
+    bumpAvatar()
     invalidateProfile()
   } else {
     toast.error(await readError(res))
@@ -197,7 +200,7 @@ function submitPassword() {
   changePw.mutate()
 }
 
-const avatarSrc = computed(() => profile.value?.avatar_url ?? undefined)
+const avatarSrc = computed(() => buildAvatarUrl(profile.value) ?? undefined)
 </script>
 
 <template>

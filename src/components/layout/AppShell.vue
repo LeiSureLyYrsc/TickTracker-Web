@@ -16,6 +16,11 @@ import Sheet from '@/components/ui/Sheet.vue'
 import ThemeMenu from '@/components/layout/ThemeMenu.vue'
 import ConfirmHost from '@/components/layout/ConfirmHost.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useQuery } from '@tanstack/vue-query'
+import { Api } from '@/lib/api'
+import { qk } from '@/lib/query'
+import { buildAvatarUrl } from '@/lib/avatar'
+import type { Profile } from '@/lib/types'
 
 const props = defineProps<{ nav: 'admin' | 'user' }>()
 const route = useRoute()
@@ -31,6 +36,13 @@ const isAdmin = computed(() => auth.role === 'admin')
 const profilePath = computed(() => (inAdmin.value ? '/admin/profile' : '/user/profile'))
 const initial = computed(() => (auth.userName ?? '?').charAt(0))
 const drawerOpen = ref(false)
+
+const { data: profile } = useQuery<Profile>({
+  queryKey: qk.profile,
+  queryFn: () => Api<Profile>('/api/me/profile'),
+  enabled: () => !!auth.role,
+})
+const avatarSrc = computed(() => buildAvatarUrl(profile.value))
 
 function go(path: string) {
   drawerOpen.value = false
@@ -69,9 +81,15 @@ function logout() {
                 aria-label="账户"
               >
                 <span
-                  class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent-2 to-accent text-sm font-semibold text-accent-fg"
+                  class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-accent-2 to-accent text-sm font-semibold text-accent-fg"
                 >
-                  {{ initial }}
+                  <img
+                    v-if="avatarSrc"
+                    :src="avatarSrc"
+                    :alt="auth.userName ?? ''"
+                    class="h-full w-full object-cover"
+                  />
+                  <template v-else>{{ initial }}</template>
                 </span>
               </button>
             </DropdownMenuTrigger>
