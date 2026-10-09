@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/vue-query'
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,6 +15,7 @@ export const qk = {
   profile: ['me', 'profile'] as const,
   passkeys: ['me', 'passkeys'] as const,
   oidcBindings: ['oidc', 'my-bindings'] as const,
+  oidcProviders: ['oidc', 'providers'] as const,
   admin: {
     root: ['admin'] as const,
     commissions: ['admin', 'commissions'] as const,
@@ -29,7 +30,6 @@ export const qk = {
     template: ['admin', 'reminders', 'template'] as const,
     settings: ['admin', 'settings'] as const,
     fonts: ['admin', 'fonts'] as const,
-    oidcProviders: ['admin', 'oidc', 'providers'] as const,
   },
   user: {
     root: ['user'] as const,

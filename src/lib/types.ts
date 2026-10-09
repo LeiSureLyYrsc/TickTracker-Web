@@ -20,7 +20,6 @@ export interface LoginResult {
   user_name: string
 }
 
-/** 管理端 /api/admin/commissions */
 export interface Commission {
   id: number
   user_id: number
@@ -34,7 +33,6 @@ export interface Commission {
   last_checked_in_at: string | null
 }
 
-/** 用户端 /api/user/me/commissions */
 export interface MyCommission {
   id: number
   game_id: number
@@ -213,23 +211,6 @@ export interface SsoBinding {
   email?: string | null
   name?: string | null
   created_at?: string | null
-}
-
-export interface OidcProvider {
-  id?: string
-  name?: string
-  icon?: string
-  icon_url?: string | null
-  enabled?: boolean
-  client_id?: string
-  client_secret?: string
-  issuer?: string
-  authorization_endpoint?: string
-  token_endpoint?: string
-  userinfo_endpoint?: string
-  jwks_uri?: string
-  scopes?: string
-  allow_register?: boolean
 }
 
 export interface UserGame {

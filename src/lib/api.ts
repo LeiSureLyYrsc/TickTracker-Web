@@ -1,5 +1,3 @@
-import { getAuth } from './auth'
-
 export class ApiError extends Error {
   status: number
   detail: unknown
@@ -15,14 +13,21 @@ export class ApiError extends Error {
 export function errorMessage(detail: unknown, fallback = '操作失败'): string {
   if (typeof detail === 'string' && detail.trim()) return detail
   if (Array.isArray(detail) && detail.length > 0) {
-    const first = detail[0] as { msg?: unknown; loc?: unknown }
+    const first = detail[0] as { msg?: unknown }
     if (first && typeof first === 'object' && first.msg) return String(first.msg)
   }
   return fallback
 }
 
-let onUnauthorized: (() => void) | null = null
+function token(): string | null {
+  try {
+    return localStorage.getItem('tt_token')
+  } catch {
+    return null
+  }
+}
 
+let onUnauthorized: (() => void) | null = null
 export function setUnauthorizedHandler(fn: (() => void) | null) {
   onUnauthorized = fn
 }
@@ -31,15 +36,14 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   const isForm = options.body instanceof FormData
   const headers: Record<string, string> = {}
   if (!isForm && options.body !== undefined) headers['Content-Type'] = 'application/json'
-  const auth = getAuth()
-  if (auth.token) headers['Authorization'] = `Bearer ${auth.token}`
+  const t = token()
+  if (t) headers['Authorization'] = `Bearer ${t}`
   Object.assign(headers, (options.headers as Record<string, string> | undefined) ?? {})
   const res = await fetch(path, { ...options, headers })
   if (res.status === 401) onUnauthorized?.()
   return res
 }
 
-/** 发起请求并解析 JSON；非 2xx 抛出 ApiError。 */
 export async function Api<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await apiFetch(path, options)
   if (res.status === 204) return undefined as T

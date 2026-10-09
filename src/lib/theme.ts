@@ -1,97 +1,84 @@
-import { argbFromHex, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
+export type ThemeMode = 'dark' | 'light' | 'system'
 
-export type ThemeMode = 'light' | 'dark' | 'system'
+const THEME_KEY = 'tt_theme'
+const ACCENT_KEY = 'tt_accent'
 
-export const DEFAULT_SEED = '#98D8A8'
+export const DEFAULT_ACCENT = '#22D3EE'
+export const ACCENT_PRESETS = ['#22D3EE', '#8B5CF6', '#34D399', '#F472B6', '#FBBF24', '#38BDF8']
 
-const SEED_KEY = 'tt_seed'
-const MODE_KEY = 'tt_mode'
-
-export function readSeed(): string {
+export function readTheme(): ThemeMode {
   try {
-    return localStorage.getItem(SEED_KEY) || DEFAULT_SEED
+    const m = localStorage.getItem(THEME_KEY)
+    return m === 'dark' || m === 'light' || m === 'system' ? m : 'dark'
   } catch {
-    return DEFAULT_SEED
+    return 'dark'
   }
 }
 
-export function persistSeed(seed: string) {
+export function persistTheme(mode: ThemeMode) {
   try {
-    localStorage.setItem(SEED_KEY, seed)
-  } catch {
-    /* 忽略 */
-  }
-}
-
-export function readMode(): ThemeMode {
-  try {
-    const m = localStorage.getItem(MODE_KEY)
-    return m === 'light' || m === 'dark' || m === 'system' ? m : 'system'
-  } catch {
-    return 'system'
-  }
-}
-
-export function persistMode(mode: ThemeMode) {
-  try {
-    localStorage.setItem(MODE_KEY, mode)
+    localStorage.setItem(THEME_KEY, mode)
   } catch {
     /* 忽略 */
   }
 }
 
-export function resolveMode(mode: ThemeMode): 'light' | 'dark' {
-  if (mode === 'system') {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    }
-    return 'light'
+export function readAccent(): string {
+  try {
+    return localStorage.getItem(ACCENT_KEY) || DEFAULT_ACCENT
+  } catch {
+    return DEFAULT_ACCENT
   }
-  return mode
 }
 
-type Scheme = Record<string, number | undefined>
-
-/**
- * 用种子色生成 Material You 亮/暗配色，产出可写入 CSS 变量的 token。
- * 生成失败（库异常/无效色值）时返回空对象，回退到 index.css 中的默认值。
- */
-export function schemeVars(seed: string, scheme: 'light' | 'dark'): Record<string, string> {
-  let s: Scheme
+export function persistAccent(hex: string) {
   try {
-    const md = themeFromSourceColor(argbFromHex(seed))
-    s = (scheme === 'dark' ? md.schemes.dark : md.schemes.light) as unknown as Scheme
+    localStorage.setItem(ACCENT_KEY, hex)
   } catch {
-    return {}
+    /* 忽略 */
   }
-  const h = (k: string): string | undefined => {
-    const v = s[k]
-    return typeof v === 'number' ? hexFromArgb(v) : undefined
-  }
-  const candidate: Record<string, string | undefined> = {
-    '--background': h('surface'),
-    '--foreground': h('onSurface'),
-    '--card': h('surfaceContainerLow') ?? h('surface'),
-    '--card-foreground': h('onSurface'),
-    '--popover': h('surfaceContainer') ?? h('surface'),
-    '--popover-foreground': h('onSurface'),
-    '--primary': h('primary'),
-    '--primary-foreground': h('onPrimary'),
-    '--secondary': h('secondaryContainer'),
-    '--secondary-foreground': h('onSecondaryContainer'),
-    '--muted': h('surfaceContainerHighest') ?? h('surfaceContainerHigh'),
-    '--muted-foreground': h('onSurfaceVariant'),
-    '--accent': h('surfaceContainerHigh') ?? h('surfaceContainer'),
-    '--accent-foreground': h('onSurface'),
-    '--destructive': h('error'),
-    '--destructive-foreground': h('onError'),
-    '--border': h('outlineVariant'),
-    '--input': h('outline'),
-    '--ring': h('primary'),
-  }
-  const out: Record<string, string> = {}
-  for (const [k, v] of Object.entries(candidate)) {
-    if (v) out[k] = v
-  }
-  return out
+}
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+  if (!m) return null
+  const n = parseInt(m[1], 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+function toHex(rgb: [number, number, number]): string {
+  return '#' + rgb.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('')
+}
+
+export function darken(hex: string, amount: number): string {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return hex
+  return toHex(rgb.map((v) => v * (1 - amount)) as [number, number, number])
+}
+
+export function contrastFg(hex: string): string {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return '#04222a'
+  const [r, g, b] = rgb
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return lum > 0.6 ? '#0b0e14' : '#ffffff'
+}
+
+export function applyTheme(mode: ThemeMode) {
+  const resolved =
+    mode === 'system'
+      ? window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
+      : mode
+  document.documentElement.classList.toggle('light', resolved === 'light')
+  const meta = document.querySelector('meta[name="theme-color"]')
+  if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0B0E14' : '#F5F7FB')
+}
+
+export function applyAccent(hex: string) {
+  const root = document.documentElement
+  root.style.setProperty('--accent', hex)
+  root.style.setProperty('--accent-2', darken(hex, 0.16))
+  root.style.setProperty('--accent-fg', contrastFg(hex))
 }
