@@ -47,7 +47,7 @@ const props = defineProps<{ title: string; description?: string; class?: string 
               <X class="h-4 w-4" />
             </button>
           </div>
-          <div class="min-h-0 flex-1 overflow-y-auto p-4">
+          <div class="min-h-0 flex-1 overflow-y-auto stable-gutter p-4">
             <slot />
           </div>
           <div

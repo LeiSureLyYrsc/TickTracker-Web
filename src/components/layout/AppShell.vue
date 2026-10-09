@@ -135,7 +135,7 @@ function logout() {
 
     <div class="mx-auto flex w-full max-w-7xl">
       <aside
-        class="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border p-3 md:flex"
+        class="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 flex-col gap-1 overflow-y-auto stable-gutter border-r border-border p-3 md:flex"
       >
         <div class="flex items-center gap-2 px-3 py-3">
           <span class="h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_12px_var(--accent)]" />

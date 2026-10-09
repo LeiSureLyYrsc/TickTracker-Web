@@ -41,7 +41,7 @@ const model = defineModel<string>({ default: '' })
         :side-offset="6"
         class="z-50 max-h-72 min-w-[10rem] overflow-hidden rounded-lg border border-border bg-surface text-text shadow-2xl data-[state=open]:anim-pop-in"
       >
-        <SelectViewport class="p-1">
+        <SelectViewport class="stable-gutter max-h-72 overflow-y-auto p-1">
           <SelectItem
             v-for="o in options"
             :key="o.value"

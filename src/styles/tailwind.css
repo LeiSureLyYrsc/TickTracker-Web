@@ -105,6 +105,10 @@
   }
 }
 
+@utility stable-gutter {
+  scrollbar-gutter: stable;
+}
+
 @utility tnum {
   font-variant-numeric: tabular-nums;
 }

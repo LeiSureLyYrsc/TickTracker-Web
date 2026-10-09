@@ -75,7 +75,7 @@ function remove(v: string) {
             class="h-8 w-full rounded-md border border-border bg-bg px-2 text-sm text-text placeholder:text-dim focus:border-accent focus:outline-none"
           />
         </div>
-        <div class="max-h-60 overflow-y-auto p-1">
+        <div class="max-h-60 overflow-y-auto stable-gutter p-1">
           <p v-if="filtered.length === 0" class="px-2 py-3 text-center text-xs text-dim">无匹配</p>
           <template v-for="(o, i) in filtered" :key="o.value">
             <p

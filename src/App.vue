@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterView } from 'vue-router'
+import { ConfigProvider } from 'reka-ui'
 import { Toaster } from 'vue-sonner'
 import { useUiStore } from '@/stores/ui'
 
@@ -9,11 +10,17 @@ const toastTheme = computed(() => ui.resolved)
 </script>
 
 <template>
-  <RouterView v-slot="{ Component }">
-    <Transition name="page" mode="out-in">
-      <component :is="Component" />
-    </Transition>
-  </RouterView>
+  <!--
+    scrollBody=false：滚动条占位统一交给 html 的 scrollbar-gutter: stable，
+    避免与 Reka 给 body 加 padding-right 的补偿叠加（叠加会在开弹窗时向左跳）。
+  -->
+  <ConfigProvider :scroll-body="false">
+    <RouterView v-slot="{ Component }">
+      <Transition name="page" mode="out-in">
+        <component :is="Component" />
+      </Transition>
+    </RouterView>
+  </ConfigProvider>
   <Toaster position="top-center" :rich-colors="true" :theme="toastTheme" close-button />
 </template>
 
