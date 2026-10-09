@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+
+/* 使用 class 策略控制暗色（ThemeProvider 会在 <html> 上切换 .dark） */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --radius: 0.75rem;
+  --background: #f8faf7;
+  --foreground: #191c19;
+  --card: #ffffff;
+  --card-foreground: #191c19;
+  --popover: #ffffff;
+  --popover-foreground: #191c19;
+  --primary: #386a3f;
+  --primary-foreground: #ffffff;
+  --secondary: #d7e8d7;
+  --secondary-foreground: #12231a;
+  --muted: #ecefeb;
+  --muted-foreground: #44483f;
+  --accent: #e2e7e1;
+  --accent-foreground: #191c19;
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+  --success: #2e7d32;
+  --success-foreground: #ffffff;
+  --border: #c4c9c1;
+  --input: #74796f;
+  --ring: #386a3f;
+}
+
+.dark {
+  --background: #101410;
+  --foreground: #e0e4dd;
+  --card: #191d19;
+  --card-foreground: #e0e4dd;
+  --popover: #1d211d;
+  --popover-foreground: #e0e4dd;
+  --primary: #9ed49f;
+  --primary-foreground: #00390f;
+  --secondary: #354b39;
+  --secondary-foreground: #d7e8d7;
+  --muted: #2c312c;
+  --muted-foreground: #c3c8c0;
+  --accent: #333833;
+  --accent-foreground: #e0e4dd;
+  --destructive: #ffb4ab;
+  --destructive-foreground: #690005;
+  --success: #7bd88a;
+  --success-foreground: #00390f;
+  --border: #434840;
+  --input: #8d9289;
+  --ring: #9ed49f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+      'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* 防止 iOS 聚焦时页面被放大 */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

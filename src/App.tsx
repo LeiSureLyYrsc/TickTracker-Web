@@ -1,58 +1,34 @@
-import { useEffect, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
-import TableChartIcon from '@mui/icons-material/TableChart'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import MailIcon from '@mui/icons-material/Mail'
-import GroupIcon from '@mui/icons-material/Group'
-import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
-import SettingsIcon from '@mui/icons-material/Settings'
-import HistoryIcon from '@mui/icons-material/History'
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
-import ViewListIcon from '@mui/icons-material/ViewList'
-import TaskAltIcon from '@mui/icons-material/TaskAlt'
-import SendIcon from '@mui/icons-material/Send'
-import AppLayout, { type NavItem } from './components/AppLayout'
-import { ToastProvider } from './lib/toast'
-import { ConfirmProvider } from './lib/confirm'
-import { setUnauthorizedHandler } from './lib/api'
-import { clearAuth, useAuth } from './lib/auth'
-import Login from './pages/Login'
-import Commissions from './pages/admin/Commissions'
-import Progress from './pages/admin/Progress'
-import Messages from './pages/admin/Messages'
-import Users from './pages/admin/Users'
-import Games from './pages/admin/Games'
-import Settings from './pages/admin/Settings'
-import AuditLogs from './pages/admin/AuditLogs'
-import Reminders from './pages/admin/Reminders'
-import MyCommissions from './pages/user/MyCommissions'
-import MyProgress from './pages/user/MyProgress'
-import SendMessage from './pages/user/SendMessage'
-import Profile from './pages/Profile'
-import OidcCallback from './pages/OidcCallback'
-import OidcLinkCallback from './pages/OidcLinkCallback'
+import { AppShell } from '@/components/layout/AppShell'
+import { RequireAuth } from '@/components/layout/RequireAuth'
+import { adminNav, userNav } from '@/nav'
+import { setUnauthorizedHandler } from '@/lib/api'
+import { clearAuth } from '@/lib/auth'
+import { Spinner } from '@/components/ui/spinner'
+import LoginPage from '@/pages/LoginPage'
 
-const adminNav: NavItem[] = [
-  { path: '/admin/commissions', icon: <TableChartIcon />, label: '代肝数据' },
-  { path: '/admin/progress', icon: <CheckCircleIcon />, label: '今日进度' },
-  { path: '/admin/messages', icon: <MailIcon />, label: '留言管理' },
-  { path: '/admin/users', icon: <GroupIcon />, label: '用户管理' },
-  { path: '/admin/games', icon: <SportsEsportsIcon />, label: '游戏管理' },
-  { path: '/admin/reminders', icon: <NotificationsActiveIcon />, label: '提醒管理' },
-  { path: '/admin/audit', icon: <HistoryIcon />, label: '审计日志' },
-  { path: '/admin/settings', icon: <SettingsIcon />, label: '系统设置' },
-]
+const OidcCallbackPage = lazy(() => import('@/pages/OidcCallbackPage'))
+const OidcLinkCallbackPage = lazy(() => import('@/pages/OidcLinkCallbackPage'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
+const AdminCommissionsPage = lazy(() => import('@/pages/admin/AdminCommissionsPage'))
+const AdminProgressPage = lazy(() => import('@/pages/admin/AdminProgressPage'))
+const AdminMessagesPage = lazy(() => import('@/pages/admin/AdminMessagesPage'))
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
+const AdminGamesPage = lazy(() => import('@/pages/admin/AdminGamesPage'))
+const AdminRemindersPage = lazy(() => import('@/pages/admin/AdminRemindersPage'))
+const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage'))
+const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'))
+const MyCommissionsPage = lazy(() => import('@/pages/user/MyCommissionsPage'))
+const MyProgressPage = lazy(() => import('@/pages/user/MyProgressPage'))
+const SendMessagePage = lazy(() => import('@/pages/user/SendMessagePage'))
 
-const userNav: NavItem[] = [
-  { path: '/user/commissions', icon: <ViewListIcon />, label: '我的代肝' },
-  { path: '/user/progress', icon: <TaskAltIcon />, label: '今日进度' },
-  { path: '/user/messages', icon: <SendIcon />, label: '发送留言' },
-]
-
-function RequireAuth({ roles, children }: { roles: Array<'admin' | 'user'>; children: ReactNode }) {
-  const auth = useAuth()
-  if (!auth.role || !roles.includes(auth.role)) return <Navigate to="/" replace />
-  return <>{children}</>
+function PageFallback() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center">
+      <Spinner className="h-6 w-6 text-muted-foreground" />
+    </div>
+  )
 }
 
 function UnauthorizedBootstrap() {
@@ -62,57 +38,59 @@ function UnauthorizedBootstrap() {
       clearAuth()
       navigate('/')
     })
+    return () => setUnauthorizedHandler(null)
   }, [navigate])
   return null
 }
 
 export default function App() {
   return (
-    <ToastProvider>
-      <ConfirmProvider>
-        <BrowserRouter>
-          <UnauthorizedBootstrap />
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/oidc/callback" element={<OidcCallback />} />
-            <Route path="/oidc/link-callback" element={<OidcLinkCallback />} />
-            <Route
-              path="/admin"
-              element={
-                <RequireAuth roles={['admin']}>
-                  <AppLayout nav={adminNav} />
-                </RequireAuth>
-              }
-            >
-              <Route index element={<Navigate to="commissions" replace />} />
-              <Route path="commissions" element={<Commissions />} />
-              <Route path="progress" element={<Progress />} />
-              <Route path="messages" element={<Messages />} />
-              <Route path="users" element={<Users />} />
-              <Route path="games" element={<Games />} />
-              <Route path="reminders" element={<Reminders />} />
-              <Route path="audit" element={<AuditLogs />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="profile" element={<Profile />} />
-            </Route>
-            <Route
-              path="/user"
-              element={
-                <RequireAuth roles={['user', 'admin']}>
-                  <AppLayout nav={userNav} />
-                </RequireAuth>
-              }
-            >
-              <Route index element={<Navigate to="commissions" replace />} />
-              <Route path="commissions" element={<MyCommissions />} />
-              <Route path="progress" element={<MyProgress />} />
-              <Route path="messages" element={<SendMessage />} />
-              <Route path="profile" element={<Profile />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </ConfirmProvider>
-    </ToastProvider>
+    <BrowserRouter>
+      <UnauthorizedBootstrap />
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/oidc/callback" element={<OidcCallbackPage />} />
+          <Route path="/oidc/link-callback" element={<OidcLinkCallbackPage />} />
+
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth roles={['admin']}>
+                <AppShell nav={adminNav} />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<Navigate to="commissions" replace />} />
+            <Route path="commissions" element={<AdminCommissionsPage />} />
+            <Route path="progress" element={<AdminProgressPage />} />
+            <Route path="messages" element={<AdminMessagesPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="games" element={<AdminGamesPage />} />
+            <Route path="reminders" element={<AdminRemindersPage />} />
+            <Route path="audit" element={<AdminAuditPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
+
+          <Route
+            path="/user"
+            element={
+              <RequireAuth roles={['user', 'admin']}>
+                <AppShell nav={userNav} />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<Navigate to="commissions" replace />} />
+            <Route path="commissions" element={<MyCommissionsPage />} />
+            <Route path="progress" element={<MyProgressPage />} />
+            <Route path="messages" element={<SendMessagePage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
   )
 }
