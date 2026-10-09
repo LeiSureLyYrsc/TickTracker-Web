@@ -7,6 +7,7 @@ import { queryClient } from './lib/query'
 import { setUnauthorizedHandler } from './lib/api'
 import { useAuthStore } from './stores/auth'
 import { useUiStore } from './stores/ui'
+import 'vue-sonner/style.css'
 import './styles/tailwind.css'
 
 const app = createApp(App)

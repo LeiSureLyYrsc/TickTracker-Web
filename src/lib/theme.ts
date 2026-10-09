@@ -64,13 +64,19 @@ export function contrastFg(hex: string): string {
   return lum > 0.6 ? '#0b0e14' : '#ffffff'
 }
 
+/** 解析实际生效的明暗（system 取决于系统偏好） */
+export function resolveMode(mode: ThemeMode): 'light' | 'dark' {
+  if (mode === 'system') {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    }
+    return 'dark'
+  }
+  return mode
+}
+
 export function applyTheme(mode: ThemeMode) {
-  const resolved =
-    mode === 'system'
-      ? window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-      : mode
+  const resolved = resolveMode(mode)
   document.documentElement.classList.toggle('light', resolved === 'light')
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0B0E14' : '#F5F7FB')

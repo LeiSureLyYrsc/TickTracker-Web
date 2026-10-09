@@ -8,6 +8,11 @@ interface PinnedPayload {
   user_ids: number[]
 }
 
+interface ToggleVars {
+  userIds: number[]
+  message: string
+}
+
 /**
  * 管理端置顶用户（后端持久化，多端共享）。
  * 置顶项排在列表最前，其余保持原有顺序。
@@ -23,18 +28,19 @@ export function usePinnedUsers() {
   const pinned = computed<number[]>(() => data.value?.user_ids ?? [])
 
   const save = useMutation({
-    mutationFn: (userIds: number[]) =>
+    mutationFn: (vars: ToggleVars) =>
       Api<PinnedPayload>('/api/admin/pinned-users', {
         method: 'PUT',
-        body: JSON.stringify({ user_ids: userIds }),
+        body: JSON.stringify({ user_ids: vars.userIds }),
       }),
-    onMutate: async (userIds: number[]) => {
+    onMutate: async (vars: ToggleVars) => {
       await qc.cancelQueries({ queryKey: qk.admin.pinnedUsers })
       const prev = qc.getQueryData<PinnedPayload>(qk.admin.pinnedUsers)
-      qc.setQueryData<PinnedPayload>(qk.admin.pinnedUsers, { user_ids: userIds })
+      qc.setQueryData<PinnedPayload>(qk.admin.pinnedUsers, { user_ids: vars.userIds })
       return { prev }
     },
-    onError: (e: unknown, _ids, ctx: { prev?: PinnedPayload } | undefined) => {
+    onSuccess: (_d: PinnedPayload, vars: ToggleVars) => toast.success(vars.message),
+    onError: (e: unknown, _vars, ctx: { prev?: PinnedPayload } | undefined) => {
       if (ctx?.prev) qc.setQueryData(qk.admin.pinnedUsers, ctx.prev)
       toast.error(e instanceof Error ? e.message : '操作失败')
     },
@@ -46,11 +52,11 @@ export function usePinnedUsers() {
   }
 
   function toggle(userId: number) {
-    const current = pinned.value
-    const next = current.includes(userId)
-      ? current.filter((id) => id !== userId)
-      : [...current, userId]
-    save.mutate(next)
+    const wasPinned = pinned.value.includes(userId)
+    const next = wasPinned
+      ? pinned.value.filter((id) => id !== userId)
+      : [...pinned.value, userId]
+    save.mutate({ userIds: next, message: wasPinned ? '已取消置顶' : '已置顶到最前' })
   }
 
   /** 置顶优先排序（稳定排序，未置顶项保持传入顺序） */

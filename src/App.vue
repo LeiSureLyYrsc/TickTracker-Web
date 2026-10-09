@@ -5,7 +5,7 @@ import { Toaster } from 'vue-sonner'
 import { useUiStore } from '@/stores/ui'
 
 const ui = useUiStore()
-const toastTheme = computed(() => (ui.theme === 'light' ? 'light' : 'dark'))
+const toastTheme = computed(() => ui.resolved)
 </script>
 
 <template>
