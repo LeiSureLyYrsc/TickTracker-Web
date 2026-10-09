@@ -66,7 +66,7 @@ const time = ref('22:00')
 
 watch(reminder, (r) => {
   if (r) time.value = r.push_time
-})
+}, { immediate: true })
 
 const invalidateProfile = () => qc.invalidateQueries({ queryKey: qk.profile })
 

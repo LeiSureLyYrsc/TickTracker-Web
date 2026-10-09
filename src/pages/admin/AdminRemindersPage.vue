@@ -31,7 +31,7 @@ const { data: templateData } = useQuery<{ template: string }>({
 const template = ref('')
 watch(templateData, (d) => {
   if (d) template.value = d.template
-})
+}, { immediate: true })
 
 const patch = useMutation({
   mutationFn: (vars: { userId: number; enabled?: boolean; push_time?: string }) =>

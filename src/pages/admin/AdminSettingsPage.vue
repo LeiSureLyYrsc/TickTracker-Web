@@ -18,6 +18,7 @@ const qc = useQueryClient()
 const { data, isLoading } = useQuery<SystemSettings>({
   queryKey: qk.admin.settings,
   queryFn: () => Api<SystemSettings>('/api/admin/settings'),
+  refetchOnMount: 'always',
 })
 
 const form = ref<SystemSettings | null>(null)
@@ -29,7 +30,7 @@ watch(data, (d) => {
     form.value = { ...d }
     rpIds.value = (d.passkey_rp_ids ?? []).join(', ')
   }
-})
+}, { immediate: true })
 
 const { data: fonts, refetch: refetchFonts } = useQuery<FontList>({
   queryKey: qk.admin.fonts,
@@ -54,6 +55,8 @@ const save = useMutation({
     form.value = { ...d }
     rpIds.value = (d.passkey_rp_ids ?? []).join(', ')
     qc.setQueryData(qk.admin.settings, d)
+    // 保存后重新拉取服务端设置并回填表单，确保数值与持久化结果一致
+    qc.invalidateQueries({ queryKey: qk.admin.settings })
     // 设置项可能影响登录页配置与个人设置页，主动失效以便立即刷新
     qc.invalidateQueries({ queryKey: qk.authConfig })
     qc.invalidateQueries({ queryKey: qk.profile })
