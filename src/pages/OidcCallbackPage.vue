@@ -36,7 +36,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col items-center justify-center gap-3 bg-bg">
+  <div class="flex min-h-full flex-col items-center justify-center gap-3 bg-bg">
     <p v-if="error" class="text-sm text-danger">{{ error }}</p>
     <template v-else>
       <Spinner class="!h-6 !w-6 text-accent" />

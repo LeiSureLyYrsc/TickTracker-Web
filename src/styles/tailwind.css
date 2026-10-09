@@ -65,18 +65,39 @@
   * {
     border-color: var(--color-border);
   }
+  html,
+  body {
+    height: 100%;
+  }
   html {
     -webkit-text-size-adjust: 100%;
   }
+  /* 文档不滚动：滚动交给 #app。这样弹出层对 body 的滚动锁既不会让滚动条消失，
+     也不会因为滚动条宽度变化把布局挤动 */
   body {
     margin: 0;
-    min-height: 100dvh;
+    overflow: hidden;
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
       'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+  /* 唯一滚动容器：始终预留滚动条空间，内容增减／弹出层开关都不会左右抖动 */
+  #app {
+    height: 100vh;
+  }
+  #app {
+    height: 100dvh;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    overscroll-behavior-y: contain;
+  }
+  /* 模态打开时锁住应用内滚动（防止背景滚动穿透） */
+  html.app-scroll-locked #app {
+    overflow: hidden;
+  }
+
   input,
   select,
   textarea {

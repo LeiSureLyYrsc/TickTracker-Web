@@ -8,10 +8,34 @@ import {
   DialogTitle,
 } from 'reka-ui'
 import { X } from '@lucide/vue'
+import { onUnmounted, watch } from 'vue'
 import { cn } from '@/lib/utils'
+import { lockAppScroll, unlockAppScroll } from '@/lib/scrollLock'
 
 const open = defineModel<boolean>('open', { default: false })
 const props = defineProps<{ title: string; description?: string; class?: string }>()
+
+// 打开时锁定应用内部滚动（#app）
+let scrollLocked = false
+watch(
+  open,
+  (v) => {
+    if (v && !scrollLocked) {
+      lockAppScroll()
+      scrollLocked = true
+    } else if (!v && scrollLocked) {
+      unlockAppScroll()
+      scrollLocked = false
+    }
+  },
+  { immediate: true },
+)
+onUnmounted(() => {
+  if (scrollLocked) {
+    unlockAppScroll()
+    scrollLocked = false
+  }
+})
 </script>
 
 <template>

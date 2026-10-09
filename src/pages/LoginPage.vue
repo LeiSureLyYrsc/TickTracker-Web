@@ -118,7 +118,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-dvh items-center justify-center bg-bg p-4">
+  <div class="flex min-h-full items-center justify-center bg-bg p-4">
     <div
       class="anim-fade-up w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-[0_0_40px_-12px_rgba(34,211,238,0.25)]"
     >

@@ -55,7 +55,7 @@ function logout() {
 </script>
 
 <template>
-  <div class="min-h-dvh bg-bg text-text">
+  <div class="min-h-full bg-bg text-text">
     <header
       class="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur supports-[backdrop-filter]:bg-bg/70"
     >

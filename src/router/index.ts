@@ -43,7 +43,11 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior: () => ({ top: 0 }),
+  // 页面滚动容器是 #app（不是 window），切换路由时重置它的滚动位置
+  scrollBehavior: () => {
+    document.getElementById('app')?.scrollTo({ top: 0 })
+    return false
+  },
 })
 
 router.beforeEach((to) => {

@@ -14,5 +14,5 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-dvh items-center justify-center bg-bg text-sm text-muted">正在返回…</div>
+  <div class="flex min-h-full items-center justify-center bg-bg text-sm text-muted">正在返回…</div>
 </template>
